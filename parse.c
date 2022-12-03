@@ -9,7 +9,7 @@ char **parse_args(char *line, char* argc) {
       count++;
     c++;
   }
-  char **args = malloc(8 * (count + 1));
+  char **args = malloc(8 * (count + 2));
   c = 0;
   char *cur = line;
   while (c != count + 1) {
@@ -17,6 +17,7 @@ char **parse_args(char *line, char* argc) {
     args[c] = t;
     c++;
   }
+  args[count+1] = NULL;
   *argc = count;
   return args;
 }

@@ -6,4 +6,6 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <pwd.h>
+
 char **parse_args(char *line, char* args);
