@@ -1,5 +1,4 @@
 #include "parse.h"
-
 // executefunction:
 // returns the function return value or errno on error or 0 on success
 // params:  args [ pointer to args ] 
@@ -55,17 +54,38 @@ void executeargs(char* input){
       char** args = parse_args(sect, &argc);
       char* sect2;
       int output = 1; 
+
+      char* sect3 = strdup(sect);
       if((sect2 = strsep(&sect,">")) != NULL && sect != NULL ){
         args = parse_args(sect2, &argc);
         while((sect2 = strsep(&sect," ")) != NULL&& sect != NULL ){
         }
         output = open(sect2, O_WRONLY | O_CREAT,0666 );
         if(output == -1){
-          printf("Error [Reached \\n while parsing]\n");
+          printf("Error [Reached \\n while parsing] (output) \n");
           return;
         }
       }
+      if((sect2 = strsep(&sect3,"<")) != NULL && sect3 != NULL ){
+        args = parse_args(sect2, &argc);
+        while((sect2 = strsep(&sect3," ")) != NULL&& sect3 != NULL ){
+        }
 
+        int fd = open(sect2, O_RDONLY );
+        if(fd == -1){
+          printf("Error [Reached \\n while parsing] (input) \n");
+          return;
+        }
+        struct stat m;
+        stat(sect2,&m);
+        char buff[m.st_size];
+        read(fd,buff,m.st_size);
+        buff[m.st_size] = 0;
+        strcat(args[0]," ");
+        char* buf =strcat(args[0], buff);
+        args = parse_args(buf,&argc);
+        
+      }
       executefunction(args, argc,output);
     }
     return;
