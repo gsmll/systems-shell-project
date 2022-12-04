@@ -5,7 +5,7 @@
 // params:  args [ pointer to args ] 
 // executes function in given args
 
-int executefunction(char** args, int argc){
+int executefunction(char** args, int argc, int output){
 
   // tests for exit or cd
    if(strcmp(args[0],"exit") == 0 )
@@ -41,6 +41,7 @@ int executefunction(char** args, int argc){
         return errno;
       }
   }
+  dup2(output, STDOUT_FILENO);
   execvp(args[0], args);
   return errno;
 }
@@ -52,7 +53,20 @@ void executeargs(char* input){
     while((sect = strsep(&search,";")) != NULL){
       char argc;
       char** args = parse_args(sect, &argc);
-      executefunction(args, argc);
+      char* sect2;
+      int output = 1; 
+      if((sect2 = strsep(&sect,">")) != NULL && sect != NULL ){
+        args = parse_args(sect2, &argc);
+        while((sect2 = strsep(&sect," ")) != NULL&& sect != NULL ){
+        }
+        output = open(sect2, O_WRONLY | O_CREAT,0666 );
+        if(output == -1){
+          printf("Error [Reached \\n while parsing]\n");
+          return;
+        }
+      }
+
+      executefunction(args, argc,output);
     }
     return;
 }
