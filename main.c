@@ -52,54 +52,48 @@ void executeargs(char *input) {
   char *search;
   search = strdup(input);
   char buffer[100];
-  while ((sect = strsep(&search, ";")) != NULL) {
-
-    char argc;
-    char **args = parse_args(strdup(sect), &argc);
-    char *sect2;
-    int output = 1;
-    int fd = 0;
-    char *sect3 = strdup(sect);
-    char *sect4 = strdup(sect);
-    
-    if ((sect2 = strsep(&sect, ">")) != NULL && sect != NULL) {
-      args = parse_args(sect2, &argc);
-      while ((sect2 = strsep(&sect, " ")) != NULL && sect != NULL) {
+  char argc;
+  char **args = parse_args(search, &argc);
+  int start = 0;
+  int end = argc;
+  int output;
+  int fd;
+  for (int i = 0; i < argc; i++) {
+    if (strcmp(args[i], ">") == 0) {
+      if (i + 1 >= argc) {
+        printf("Error [Reached \\n while parsing] (output) \n");
+        return;
       }
-      output = open(sect2, O_WRONLY | O_CREAT | O_EXCL, 0666);
+      output = open(args[i + 1], O_WRONLY | O_CREAT | O_EXCL, 0666);
       if (output == -1) {
-        remove(sect2);
-        output = open(sect2, O_WRONLY | O_CREAT | O_EXCL, 0666);
+        remove(args[i + 1]);
+        output = open(args[i + 1], O_WRONLY | O_CREAT | O_EXCL, 0666);
         if (output == -1) {
           printf("Error [Reached \\n while parsing] (output) \n");
           return;
         }
       }
-    }
-    if ((sect2 = strsep(&sect4, "|")) != NULL && sect4 != NULL) {
-       
-        FILE *op = popen(sect2,"r");
-        if(op == NULL) return;
-        fd = fileno(op);
-       
-        args = parse_args(sect4,&argc);
-       
-       
-    }
-    if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
-      args = parse_args(sect2, &argc);
-      while ((sect2 = strsep(&sect3, " ")) != NULL && sect3 != NULL) {
+      if (end > i) {
+        end = i;
       }
-
-      fd = open(sect2, O_RDONLY);
+    }
+    if (strcmp(args[i], "<") == 0) {
+      if (i + 1 >= argc) {
+        printf("Error [Reached \\n while parsing] (input)");
+        return;
+      }
+      fd = open(args[i + 1], O_RDONLY);
       if (fd == -1) {
         printf("Error [Reached \\n while parsing] (input) \n");
         return;
       }
+      if (end > i) {
+        end = i;
+      }
     }
-    executefunction(args, argc, output, fd);
-    
   }
+  args[end] = NULL;
+  executefunction(args, argc, output, fd);
   return;
 }
 static void sighandler(int signo) {
