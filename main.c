@@ -51,6 +51,7 @@ void executeargs(char *input) {
   char *sect;
   char *search;
   search = strdup(input);
+  char buffer[100];
   while ((sect = strsep(&search, ";")) != NULL) {
 
     char argc;
@@ -59,9 +60,9 @@ void executeargs(char *input) {
     int output = 1;
     int fd = 0;
     char *sect3 = strdup(sect);
-    //  printf("%s\n", sect);
+    char *sect4 = strdup(sect);
+    
     if ((sect2 = strsep(&sect, ">")) != NULL && sect != NULL) {
-      printf("1");
       args = parse_args(sect2, &argc);
       while ((sect2 = strsep(&sect, " ")) != NULL && sect != NULL) {
       }
@@ -75,6 +76,16 @@ void executeargs(char *input) {
         }
       }
     }
+    if ((sect2 = strsep(&sect4, "|")) != NULL && sect4 != NULL) {
+       
+        FILE *op = popen(sect2,"r");
+        if(op == NULL) return;
+        fd = fileno(op);
+       
+        args = parse_args(sect4,&argc);
+       
+       
+    }
     if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
       args = parse_args(sect2, &argc);
       while ((sect2 = strsep(&sect3, " ")) != NULL && sect3 != NULL) {
@@ -87,6 +98,7 @@ void executeargs(char *input) {
       }
     }
     executefunction(args, argc, output, fd);
+    
   }
   return;
 }
