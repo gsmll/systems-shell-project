@@ -22,18 +22,15 @@ int executefunction(char **args, int argc, int output, int input) {
   }
 
   // runs seperate programs
-  int backup_sdout = dup( STDOUT_FILENO );// save stdout for later
-  int backup_sdin = dup( STDIN_FILENO ) ;
-  dup2(output, STDOUT_FILENO);
-  dup2(input, STDIN_FILENO);
+ 
   int id = fork();
+  
 
   if (id != 0) {
 
     int status;
-    int w = wait(&status);
-    dup2(backup_sdout, STDOUT_FILENO);
-    dup2(backup_sdin, STDIN_FILENO);
+    int w = waitpid(id,&status,0);
+
     if (w) {
       if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
@@ -45,13 +42,15 @@ int executefunction(char **args, int argc, int output, int input) {
     }
     return -1;
   }
-
+ int backup_sdout = dup( STDOUT_FILENO );// save stdout for later
+  int backup_sdin = dup( STDIN_FILENO ) ;
+  dup2(output, STDOUT_FILENO);
+  dup2(input, STDIN_FILENO);
   execvp(args[0], args);
   dup2(backup_sdout, STDOUT_FILENO);
   dup2(backup_sdin, STDIN_FILENO);
   exit(-1);
 
-  return -1;
 }
 // runs execute for each function seperated by a semicolon, takes in stdin for
 // now
@@ -85,20 +84,24 @@ void executeargs(char *input) {
       }
     }
     if ((sect2 = strsep(&sect4, "|")) != NULL && sect4 != NULL) {
-
         FILE *op = popen(sect2,"r");
-        if(op == NULL) return;
-        fd = fileno(op);
+        if(op == NULL) {
+            printf("err");
 
+          return;
+        }
+        fd = fileno(op);
+        sect4 = strsep(&sect4, ">");
         args = parse_args(sect4,&argc);
 
 
     }
-    if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
+    else if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
       args = parse_args(sect2, &argc);
       sect3 = strsep(&sect3,">");
       while ((sect2 = strsep(&sect3, " ")) != NULL && sect3 != NULL && sect3[0] ==' ') {
       }
+      if(sect3 == NULL) sect3 = sect2;
       sect3 = strsep(&sect3," ");
       fd = open(sect3, O_RDONLY);
       if (fd == -1) {
@@ -113,7 +116,7 @@ void executeargs(char *input) {
 }
 static void sighandler(int signo) {
   if (signo == SIGINT)
-    printf(" - Interrupt - CTRL C\n");
+    printf("\n - Interrupt - CTRL C\n");
 }
 int main() {
   signal(SIGINT, sighandler);
