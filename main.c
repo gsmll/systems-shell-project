@@ -7,30 +7,35 @@
 int executefunction(char **args, int argc, int output, int input) {
 
   // tests for exit or cd
-  if (args[0] == NULL)
+  if (args[0] == NULL){
+    free(args);
     return -1;
-  if (strcmp(args[0], "exit") == 0)
+  }
+  if (strcmp(args[0], "exit") == 0){
     exit(argc == 2 ? atoi(args[1]) : 0);
+  }
   if (strcmp(args[0], "cd") == 0) {
     if (argc == 2) {
       chdir(args[1]);
+      free(args);
       return 0;
     } else {
       printf("too many args [cd]\n");
+      free(args);
       return -1;
     }
   }
 
   // runs seperate programs
- 
+
   int id = fork();
-  
+
 
   if (id != 0) {
 
     int status;
     int w = waitpid(id,&status,0);
-
+    free(args);
     if (w) {
       if (WIFEXITED(status)) {
         return WEXITSTATUS(status);
@@ -49,6 +54,7 @@ int executefunction(char **args, int argc, int output, int input) {
   execvp(args[0], args);
   dup2(backup_sdout, STDOUT_FILENO);
   dup2(backup_sdin, STDIN_FILENO);
+  free(args);
   exit(-1);
 
 }
