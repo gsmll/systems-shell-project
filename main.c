@@ -7,11 +7,11 @@
 int executefunction(char **args, int argc, int output, int input) {
 
   // tests for exit or cd
-  if (args[0] == NULL){
+  if (args[0] == NULL) {
     free(args);
     return -1;
   }
-  if (strcmp(args[0], "exit") == 0){
+  if (strcmp(args[0], "exit") == 0) {
     exit(argc == 2 ? atoi(args[1]) : 0);
   }
   if (strcmp(args[0], "cd") == 0) {
@@ -30,11 +30,10 @@ int executefunction(char **args, int argc, int output, int input) {
 
   int id = fork();
 
-
   if (id != 0) {
 
     int status;
-    int w = waitpid(id,&status,0);
+    int w = waitpid(id, &status, 0);
     free(args);
     if (w) {
       if (WIFEXITED(status)) {
@@ -47,8 +46,8 @@ int executefunction(char **args, int argc, int output, int input) {
     }
     return -1;
   }
- int backup_sdout = dup( STDOUT_FILENO );// save stdout for later
-  int backup_sdin = dup( STDIN_FILENO ) ;
+  int backup_sdout = dup(STDOUT_FILENO); // save stdout for later
+  int backup_sdin = dup(STDIN_FILENO);
   dup2(output, STDOUT_FILENO);
   dup2(input, STDIN_FILENO);
   execvp(args[0], args);
@@ -56,7 +55,6 @@ int executefunction(char **args, int argc, int output, int input) {
   dup2(backup_sdin, STDIN_FILENO);
   free(args);
   exit(-1);
-
 }
 // runs execute for each function seperated by a semicolon, takes in stdin for
 // now
@@ -90,25 +88,25 @@ void executeargs(char *input) {
       }
     }
     if ((sect2 = strsep(&sect4, "|")) != NULL && sect4 != NULL) {
-        FILE *op = popen(sect2,"r");
-        if(op == NULL) {
-            printf("err");
+      FILE *op = popen(sect2, "r");
+      if (op == NULL) {
+        printf("err");
 
-          return;
-        }
-        fd = fileno(op);
-        sect4 = strsep(&sect4, ">");
-        args = parse_args(sect4,&argc);
-
-
-    }
-    else if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
-      args = parse_args(sect2, &argc);
-      sect3 = strsep(&sect3,">");
-      while ((sect2 = strsep(&sect3, " ")) != NULL && sect3 != NULL && sect3[0] ==' ') {
+        return;
       }
-      if(sect3 == NULL) sect3 = sect2;
-      sect3 = strsep(&sect3," ");
+      fd = fileno(op);
+      sect4 = strsep(&sect4, ">");
+      args = parse_args(sect4, &argc);
+
+    } else if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
+      args = parse_args(sect2, &argc);
+      sect3 = strsep(&sect3, ">");
+      while ((sect2 = strsep(&sect3, " ")) != NULL && sect3 != NULL &&
+             sect3[0] == ' ') {
+      }
+      if (sect3 == NULL)
+        sect3 = sect2;
+      sect3 = strsep(&sect3, " ");
       fd = open(sect3, O_RDONLY);
       if (fd == -1) {
         printf("Error [Reached \\n while parsing] (input) \n");
@@ -116,7 +114,6 @@ void executeargs(char *input) {
       }
     }
     executefunction(args, argc, output, fd);
-
   }
   return;
 }
@@ -129,10 +126,13 @@ int main() {
   while (1) {
     char cwd[1024];
     getcwd(cwd, sizeof(cwd));
-    printf("[%s] shell@%s $ ", cwd, getpwuid(geteuid())->pw_name);
+    printf(" \033[0;34m[%s] shell@\033[1;31m%s \033[0m$ \033[1;33m", cwd,
+           getpwuid(geteuid())->pw_name);
     char buffer[1024];
     fgets(buffer, 1024, stdin);
     buffer[strlen(buffer) - 1] = 0;
+    printf("\033[0m");
+    fflush(stdout);
     executeargs(buffer);
   }
   return 0;
