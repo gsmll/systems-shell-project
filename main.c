@@ -1,8 +1,12 @@
 #include "parse.h"
+#include "main.h"
+
+
 // executefunction:
 // returns the function return value or errno on error or 0 on success
 // params:  args [ pointer to args ]
 // executes function in given args
+
 
 int executefunction(char **args, int argc, int output, int input) {
 
@@ -56,9 +60,80 @@ int executefunction(char **args, int argc, int output, int input) {
   free(args);
   exit(-1);
 }
-// runs execute for each function seperated by a semicolon, takes in stdin for
-// now
-void executeargs(char *input) {
+
+
+// rdout:
+// returns the filenumber for new output based on ">"
+// params: command (current command),args (array of arguments from command line), argc( number of args)
+// returns output fileno for output redirection and stdout in case of error
+
+
+int rdout( char* command,char**args,char argc){
+  char* input;
+   if ((input = strsep(&command, ">")) != NULL && command != NULL) {
+      memcpy(args, parse_args(input, &argc),(argc+1) * 8);
+      while ((input = strsep(&command, " ")) != NULL && command != NULL && command[0] == ' ') {
+      }
+      int output = open(command, O_WRONLY | O_CREAT | O_EXCL, 0666);
+      if (output == -1) {
+        remove(command);
+        output = open(command, O_WRONLY | O_CREAT, 0666);
+        if (output == -1) {
+          printf("Error [Reached \\n while parsing] (output) \n");
+          return 1;
+        }
+      }
+      return output;
+    }
+    return 1;
+}
+
+
+// rdin:
+// returns the filenumber for new input based on "<" and pipes based on "|" (only one at a time)
+// params: command (current command),args (array of arguments from command line), argc( number of args)
+// returns input fileno for input redirection and stdin in case of error ( piping makes a file which is the new input)
+
+
+int rdin( char* command, char**args,char argc){
+    char* input;
+char* command2 = strdup(command);
+int fd = 0;
+if ((input = strsep(&command, "|")) != NULL && command != NULL) {
+      FILE *op = popen(input, "r");
+      if (op == NULL) {
+        printf("err");
+
+        return 0;
+      }
+      fd = fileno(op);
+      command = strsep(&command, ">");
+      memcpy(args, parse_args(command, &argc),(argc+1) * 8);
+
+
+    } else if ((input = strsep(&command2, "<")) != NULL && command2 != NULL) {
+      memcpy(args, parse_args(input, &argc),(argc+1) * 8);
+
+      command2 = strsep(&command2, ">");
+      while ((input = strsep(&command2, " ")) != NULL && command2 != NULL &&
+             command2[0] == ' ') {
+      }
+      if (command2 == NULL)
+        command2 = input;
+      command2 = strsep(&command2, " ");
+      fd = open(command2, O_RDONLY);
+      if (fd == -1) {
+        printf("Error [Reached \\n while parsing] (input) \n");
+        return 0;
+      }
+    }
+    return fd;
+}
+// gatherargs
+// runs execute for each function seperated by a semicolon
+// input (string of input)
+// returns an array of args for executings
+void gatherargs(char *input) {
   char *sect;
   char *search;
   search = strdup(input);
@@ -71,56 +146,21 @@ void executeargs(char *input) {
     int output = 1;
     int fd = 0;
     char *sect3 = strdup(sect);
-    char *sect4 = strdup(sect);
+ 
 
-    if ((sect2 = strsep(&sect, ">")) != NULL && sect != NULL) {
-      args = parse_args(sect2, &argc);
-      while ((sect2 = strsep(&sect, " ")) != NULL && sect != NULL) {
-      }
-      output = open(sect2, O_WRONLY | O_CREAT | O_EXCL, 0666);
-      if (output == -1) {
-        remove(sect2);
-        output = open(sect2, O_WRONLY | O_CREAT | O_EXCL, 0666);
-        if (output == -1) {
-          printf("Error [Reached \\n while parsing] (output) \n");
-          return;
-        }
-      }
-    }
-    if ((sect2 = strsep(&sect4, "|")) != NULL && sect4 != NULL) {
-      FILE *op = popen(sect2, "r");
-      if (op == NULL) {
-        printf("err");
-
-        return;
-      }
-      fd = fileno(op);
-      sect4 = strsep(&sect4, ">");
-      args = parse_args(sect4, &argc);
-
-    } else if ((sect2 = strsep(&sect3, "<")) != NULL && sect3 != NULL) {
-      args = parse_args(sect2, &argc);
-      sect3 = strsep(&sect3, ">");
-      while ((sect2 = strsep(&sect3, " ")) != NULL && sect3 != NULL &&
-             sect3[0] == ' ') {
-      }
-      if (sect3 == NULL)
-        sect3 = sect2;
-      sect3 = strsep(&sect3, " ");
-      fd = open(sect3, O_RDONLY);
-      if (fd == -1) {
-        printf("Error [Reached \\n while parsing] (input) \n");
-        return;
-      }
-    }
+    output = rdout(sect,args,argc);
+    fd = rdin(sect3,args,argc);
     executefunction(args, argc, output, fd);
   }
   return;
 }
+//catches control C and prints that an interrupt occured
 static void sighandler(int signo) {
   if (signo == SIGINT)
     printf("\n - Interrupt - CTRL C\n");
 }
+// main
+// repeatedly waits for command input and prints the home directory and the user
 int main() {
   signal(SIGINT, sighandler);
   while (1) {
@@ -133,7 +173,7 @@ int main() {
     buffer[strlen(buffer) - 1] = 0;
     printf("\033[0m");
     fflush(stdout);
-    executeargs(buffer);
+    gatherargs(buffer);
   }
   return 0;
 }
