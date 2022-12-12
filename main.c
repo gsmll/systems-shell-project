@@ -74,6 +74,7 @@ int rdout( char* command,char**args,char argc){
       memcpy(args, parse_args(input, &argc),(argc+1) * 8);
       while ((input = strsep(&command, " ")) != NULL && command != NULL && command[0] == ' ') {
       }
+      command = strsep(&command, " ");
       int output = open(command, O_WRONLY | O_CREAT | O_EXCL, 0666);
       if (output == -1) {
         remove(command);
